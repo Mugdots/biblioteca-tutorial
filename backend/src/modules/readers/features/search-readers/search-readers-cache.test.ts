@@ -20,32 +20,30 @@ test("UC06: a segunda busca vem do cache", async () => {
     expect(second.readers).toEqual(first.readers);
 });
 
-test("termos que diferem em espaços e caixa compartilham o resultado", async () => {
+test("UC06: termos que diferem em espaços e caixa compartilham o resultado", async () => {
     const reader = await testReader();
     const term = reader.nome;
     await search(term);
     expect((await search(`  ${term.toUpperCase()} `)).cache).toBe("HIT");
 });
 
-test("sem q e com q vazio compartilham o resultado", async () => {
-    await invalidateReaderSearch();              // começa de uma geração limpa
-
+test("UC06: sem q e com q vazio compartilham o resultado", async () => {
+    await invalidateReaderSearch();
     const semQ = await api("GET", "/leitores");
     expect(semQ.headers.get("X-Cache")).toBe("MISS");
-
     const vazio = await api("GET", "/leitores?q=");
     expect(vazio.headers.get("X-Cache")).toBe("HIT");
     expect(await vazio.json()).toEqual(await semQ.json());
 });
 
-test("POST /api/seed invalida o cache", async () => {
+test("UC06: POST /api/seed invalida o cache", async () => {
     await search("");
     expect((await search("")).cache).toBe("HIT");
     expect((await api("POST", "/seed")).status).toBe(200); // confira o status e o prefixo da rota
     expect((await search("")).cache).toBe("MISS");
 });
 
-test("sem Redis responde BYPASS e a invalidação não lança", async () => {
+test("UC06: sem Redis responde BYPASS e a invalidação não lança", async () => {
     const reader = await testReader();
     const dead = createRedis("redis://127.0.0.1:1", { autoReconnect: false });
     const result = await searchReadersCached(reader.nome, dead);
@@ -54,10 +52,9 @@ test("sem Redis responde BYPASS e a invalidação não lança", async () => {
     await expect(invalidateReaderSearch(dead)).resolves.toBeUndefined();
 });
 
-test("cada termo guardado expira sozinho (TTL)", async () => {
-    await invalidateReaderSearch();                    // geração nova e vazia
+test("UC06: cada termo guardado expira sozinho (TTL)", async () => {
+    await invalidateReaderSearch();
     const term = testName("Ttl");
-
     const read = await readCachedSearch(term);
     expect(read).not.toBeNull();                       // falha aqui = sem Redis (BYPASS)
     expect(read!.readers).toBeNull();
@@ -76,8 +73,6 @@ test("cada termo guardado expira sozinho (TTL)", async () => {
         expect(ttl).toBeLessThanOrEqual(60);
     }
 });
-
-
 
 test("UC06: cadastrar, editar e excluir autor invalidam o cache", async () => {
     await search("");
